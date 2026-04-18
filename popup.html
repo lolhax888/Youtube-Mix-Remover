@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Mix Remover</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 16px;
+      margin: 0 0 16px 0;
+      color: #ff0000;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+
+    .toggle-label {
+      font-weight: 600;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #ff0000;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .whitelist-section {
+      border-top: 1px solid #e0e0e0;
+      padding-top: 16px;
+    }
+
+    .whitelist-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .whitelist-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+    }
+
+    .whitelist-input::placeholder {
+      color: #999;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 8px;
+      background: #ff0000;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .btn:hover {
+      background: #cc0000;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .whitelist-list {
+      margin-top: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .whitelist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 8px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .whitelist-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      color: #ff0000;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+    }
+
+    .remove-btn:hover {
+      color: #cc0000;
+    }
+
+    .status-msg {
+      font-size: 11px;
+      margin-top: 8px;
+      text-align: center;
+      min-height: 16px;
+    }
+
+    .status-msg.success {
+      color: #00aa00;
+    }
+
+    .status-msg.error {
+      color: #ff0000;
+    }
+
+    .help-text {
+      font-size: 11px;
+      color: #666;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎬 YouTube Mix Remover</h1>
+
+  <div class="toggle-container">
+    <span class="toggle-label">Extension Enabled</span>
+    <label class="switch">
+      <input type="checkbox" id="enabledToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="whitelist-section">
+    <div class="whitelist-title">Whitelist Playlist</div>
+    <input
+      type="text"
+      id="playlistInput"
+      class="whitelist-input"
+      placeholder="Paste full YouTube URL or playlist ID"
+    >
+    <button id="addBtn" class="btn">Add to Whitelist</button>
+    <div class="help-text">
+      Paste any YouTube link containing a playlist (e.g., https://youtube.com/watch?v=xxx&list=PLyyy). We'll extract the playlist ID automatically.
+    </div>
+
+    <div id="whitelistList" class="whitelist-list"></div>
+    <div id="statusMsg" class="status-msg"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
