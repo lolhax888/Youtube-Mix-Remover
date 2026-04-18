@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Mix Remover",
+  "version": "3.0",
+  "description": "Stops Youtube from adding a bunch of random shit to your que or playlist you didnt ask for.",
+  "permissions": [
+    "webNavigation",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://youtu.be/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+    "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+    }
+  },
+  "icons": {
+      "16": "icons/icon.svg",
+      "48": "icons/icon.svg",
+      "128": "icons/icon.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@YouTubeMixesShouldBeConsideredAHateCrime",
+      "strict_min_version": "109.0"
+    }
+  }
+}
