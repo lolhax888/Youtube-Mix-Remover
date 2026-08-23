@@ -1,1 +1,20 @@
-Youtube Mixes should be considered a hatecrime
+Stops Youtube from adding a bunch of random shit to your que or playlist you didnt ask for	
+This extension removes the playlist parameters from YouTube.com and Youtu.be Urlsl so they wont force 20 videos you didnt click on into your que without askiing. The video you clicked will be the only thing that plays and not a bunch of random shit you didnt ask for.
+
+What this Extension does:
+
+• Stop YouTube from adding unwanted shit when you add a video to your que
+• Stop YouTube from forcing a playlist when opening a single video.
+
+What this Extension DOESNT do:
+
+- Track or collect any data. At all.
+
+Changelog V3:
+
+- Added on/off toggle
+- Added an Icon
+- Improved list/que parameter detection
+- Minor performance increase
+
+
