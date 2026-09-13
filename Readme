@@ -34,6 +34,3 @@ Available for Firefox and Chromium-based browsers, including Chrome and compatib
 
 
 
-The source uses Manifest V3 with both `background.scripts` (Firefox) and `background.service_worker` (Chrome). Firefox currently uses the background script path, while Chromium uses the service worker path.
-
-
