@@ -1,3 +1,71 @@
+### YouTube Mix Remover
+
+YouTube Mix Remover keeps YouTube playback under your control.
+
+YouTube can sometimes turn a normal video click into a Mix or radio queue, adding a stream of related videos you never asked for. It can also add unwanted videos when you use YouTube’s **Add to queue** option.
+
+This extension prevents that behavior while preserving playlists you intentionally open.
+
+### Features
+
+- Prevents YouTube from creating unwanted Mix or radio queues when opening individual videos.
+- Prevents additional Mix videos from being added when using **Add to queue**.
+- Keeps the video you selected.
+- Preserves the queue that was already there.
+- Keeps explicitly opened playlists working normally.
+- Preserves useful parameters such as timestamps.
+- Works with YouTube’s normal navigation without forcing unnecessary page reloads.
+- Includes a simple enable/disable toggle.
+- Does not collect, transmit, or sell any personal data.
+
+### What is preserved?
+
+If you intentionally open a normal YouTube playlist, it remains a playlist.
+
+For example, links containing a standard playlist such as `list=PL...` are left alone. Only automatically generated Mix and radio queues are removed.
+
+### Browser support
+
+Available for Firefox and Chromium-based browsers, including Chrome and compatible browsers.
+
+
+### Privacy statement
+
+**This extension does not collect or transmit user data. It does not include analytics, advertising, tracking, or external services. All processing takes place locally in the browser.**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 YouTube Mix Remover
 ===================
 
