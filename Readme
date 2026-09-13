@@ -34,60 +34,6 @@ Available for Firefox and Chromium-based browsers, including Chrome and compatib
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-YouTube Mix Remover
-===================
-
-Stops YouTube from silently turning a normal video click into a Mix queue, while leaving explicitly selected playlists alone.
-
-What it does
-------------
-
-- Removes Mix/radio parameters from individual video navigations.
-- Preserves normal playlists such as `list=PL...` and playlist position parameters.
-- Watches the queue after an “Add to queue” action and removes newly injected Mix items while retaining the selected video and the queue that was already present.
-- Runs at document start and uses YouTube's SPA navigation event where available, avoiding the old cancel-and-force-reload approach in the normal case.
-
-
-What it doesnt do
-------------------
-
-- Collect any data whatsoever
-
-
-Browser support
----------------
-
 The source uses Manifest V3 with both `background.scripts` (Firefox) and `background.service_worker` (Chrome). Firefox currently uses the background script path, while Chromium uses the service worker path.
 
 
