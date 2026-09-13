@@ -1,21 +1,24 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const toggle = document.getElementById('toggle');
   const status = document.getElementById('status');
+  const api = typeof browser !== 'undefined' ? browser : chrome;
 
-  // Load current state
-  const result = await chrome.storage.sync.get(['enabled']);
-  const isEnabled = result.enabled !== false; // Default to enabled
-
+  const result = await api.storage.sync.get(['enabled']);
+  const isEnabled = result.enabled !== false;
   toggle.checked = isEnabled;
   updateStatus(isEnabled);
 
-  toggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await chrome.storage.sync.set({ enabled });
+  toggle.addEventListener('change', async (event) => {
+    const enabled = event.target.checked;
+    await api.storage.sync.set({ enabled });
     updateStatus(enabled);
-
-    // Notify background script of state change
-    await chrome.runtime.sendMessage({ action: 'stateChanged', enabled });
+    if (enabled) {
+      try {
+        await api.runtime.sendMessage({ action: 'inject-current-tab' });
+      } catch (_) {
+        // The current tab may not be scriptable on browser-owned pages.
+      }
+    }
   });
 
   function updateStatus(enabled) {
