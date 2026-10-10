@@ -62,7 +62,7 @@
   const urls = window.YouTubeMixUrls || createUrlTools();
   if (!window.YouTubeMixUrls) window.YouTubeMixUrls = urls;
 
-  const scriptVersion = '4.0.6';
+  const scriptVersion = '4.0.8';
   const alreadyLoaded = window.__youtubeMixRemoverLoadedVersion === scriptVersion;
   window.__youtubeMixRemoverLoadedVersion = scriptVersion;
 
@@ -124,7 +124,6 @@
 
   let pendingQueueSource = null;
   let pendingQueueSourceAt = 0;
-  let pendingQueueBefore = null;
   let pendingNavigationBefore = null;
   let pendingNavigationVideoId = null;
   let pendingNavigationAt = 0;
@@ -144,36 +143,49 @@
   }
 
   function sourceVideoId(target) {
-    const element = target instanceof Element ? target : null;
-    const renderer = element && element.closest(
-      'ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer, ytd-compact-video-renderer'
-    );
+    const selector = 'ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer, ytd-compact-video-renderer, yt-lockup-view-model';
+    const path = target && typeof target.composedPath === 'function' ? target.composedPath() : [];
+    const element = target instanceof Element ? target : target && target.target instanceof Element ? target.target : null;
+    const renderer = path.find((node) => node instanceof Element && node.matches(selector)) ||
+      (element && element.closest(selector));
     const link = renderer && renderer.querySelector('a[href*="watch"]');
     return link ? urls.getVideoId(link.href) : null;
   }
 
   function isVideoMenuButton(target) {
-    const element = target instanceof Element ? target : null;
-    if (!element) return false;
-    const label = `${element.getAttribute('aria-label') || ''} ${element.getAttribute('title') || ''}`;
-    return /more|menu|action/i.test(label);
+    const path = target && typeof target.composedPath === 'function' ? target.composedPath() : [];
+    const element = target instanceof Element ? target : target && target.target instanceof Element ? target.target : null;
+    const elements = path.filter((node) => node instanceof Element);
+    if (element && !elements.includes(element)) elements.unshift(element);
+    return elements.some((node) => {
+      const button = node.closest('button, yt-icon-button, tp-yt-paper-icon-button, [role="button"]') || node;
+      const label = `${button.getAttribute('aria-label') || ''} ${button.getAttribute('title') || ''}`;
+      return /more|menu|action/i.test(label);
+    });
   }
 
-  function rememberQueueSource(target) {
-    if (!isVideoMenuButton(target)) return;
-    const id = sourceVideoId(target);
+  function rememberQueueSource(event) {
+    if (!isVideoMenuButton(event)) {
+      if (!isQueueAction(event)) {
+        pendingQueueSource = null;
+        pendingQueueSourceAt = 0;
+      }
+      return;
+    }
+    const id = sourceVideoId(event);
     if (id) {
       pendingQueueSource = id;
       pendingQueueSourceAt = Date.now();
-      pendingQueueBefore = queueSnapshot();
     }
   }
 
   function handleNavigationClick(event) {
     if (!enabled || event.button !== 0 || event.defaultPrevented) return;
 
-    const target = event.target instanceof Element ? event.target : null;
-    const anchor = target && target.closest('a[href]');
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    const anchor = path.find((node) => node instanceof Element && node.matches('a[href]')) ||
+      path.map((node) => node instanceof Element ? node.closest('a[href]') : null).find(Boolean) ||
+      (event.target instanceof Element ? event.target.closest('a[href]') : null);
     if (!anchor || !urls.isYouTubeUrl(anchor.href)) return;
 
     const cleanUrl = urls.cleanMixUrl(anchor.href);
@@ -184,6 +196,14 @@
     pendingNavigationAt = Date.now();
     anchor.href = cleanUrl;
     anchor.setAttribute('href', cleanUrl);
+
+    const modifiedClick = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
+    const target = anchor.getAttribute('target');
+    if (!modifiedClick && (!target || target.toLowerCase() === '_self')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.location.assign(cleanUrl);
+    }
   }
 
   function cleanUnwantedNavigationPanel(before, selectedId) {
@@ -310,66 +330,128 @@
   }
 
   function clickRemoveFromQueue(item) {
-    const menuButton = Array.from(item.querySelectorAll('button, yt-icon-button, tp-yt-paper-icon-button'))
-      .find((button) => /more|menu|action/i.test(
-        `${button.getAttribute('aria-label') || ''} ${button.getAttribute('title') || ''}`
-      ));
-    if (!menuButton) return false;
+    const menuButton = item.querySelector('button[aria-label="Action menu"]') ||
+      Array.from(item.querySelectorAll('button, yt-icon-button, tp-yt-paper-icon-button'))
+        .find((button) => /more|menu|action/i.test(
+          `${button.getAttribute('aria-label') || ''} ${button.getAttribute('title') || ''}`
+        ));
+    if (!menuButton) return Promise.resolve(false);
 
-    menuButton.click();
-    const remove = Array.from(document.querySelectorAll(
-      'ytd-menu-service-item-renderer, tp-yt-paper-item, [role="menuitem"]'
-    )).find((entry) => /remove\s+from\s+queue/i.test(entry.textContent || ''));
-    if (!remove) return false;
+    return new Promise((resolve) => {
+      let settled = false;
+      let removalStarted = false;
+      let removalObserver = null;
+      let removalTimeout = null;
+      const timeout = window.setTimeout(() => finish(false), 2500);
+      const poll = window.setInterval(inspect, 100);
+      const observer = new MutationObserver(inspect);
+      observer.observe(document, { childList: true, subtree: true });
 
-    remove.click();
-    return true;
+      function finish(removed) {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        window.clearInterval(poll);
+        observer.disconnect();
+        if (removalObserver) removalObserver.disconnect();
+        if (removalTimeout) window.clearTimeout(removalTimeout);
+        const menuOpen = menuButton.getAttribute('aria-expanded') === 'true' ||
+          Array.from(document.querySelectorAll('ytd-menu-popup-renderer, tp-yt-paper-listbox, [role="menu"]'))
+            .some((menu) => menu.getClientRects().length > 0);
+        if (!removed && menuOpen) {
+          menuButton.click();
+        }
+        resolve(removed);
+      }
+
+      function inspect() {
+        if (settled || removalStarted) return;
+        const remove = Array.from(document.querySelectorAll(
+          'ytd-menu-service-item-renderer, tp-yt-paper-item, [role="menuitem"]'
+        )).find((entry) => entry.getClientRects().length > 0 &&
+          /remove\s+from\s+(?:the\s+)?(?:queue|playlist)/i.test(entry.textContent || '')
+        );
+        if (remove) {
+          removalStarted = true;
+          window.clearInterval(poll);
+          observer.disconnect();
+          const action = remove.matches('tp-yt-paper-item, [role="menuitem"]')
+            ? remove
+            : remove.querySelector('tp-yt-paper-item, [role="menuitem"]') || remove;
+          removalObserver = new MutationObserver(() => {
+            if (!item.isConnected) {
+              finish(true);
+            }
+          });
+          removalObserver.observe(document, { childList: true, subtree: true });
+          action.click();
+          removalTimeout = window.setTimeout(() => {
+            finish(!item.isConnected);
+          }, 500);
+        }
+      }
+
+      menuButton.click();
+      inspect();
+    });
   }
 
   function removeQueueItems(items, index) {
     if (index >= items.length || !enabled) return;
-    if (clickRemoveFromQueue(items[index])) {
+    clickRemoveFromQueue(items[index]).then(() => {
       window.setTimeout(() => removeQueueItems(items, index + 1), 350);
-    } else {
-      removeQueueItems(items, index + 1);
-    }
+    });
   }
 
   function isQueueAction(target) {
-    const element = target instanceof Element ? target : null;
-    if (!element) return false;
-    const label = [element.getAttribute('aria-label'), element.getAttribute('title'), element.textContent]
-      .filter(Boolean).join(' ').toLowerCase();
-    return /add\s+to\s+(?:the\s+)?queue/.test(label);
+    const path = target && typeof target.composedPath === 'function' ? target.composedPath() : [];
+    const element = target instanceof Element ? target : target && target.target instanceof Element ? target.target : null;
+    const elements = path.filter((node) => node instanceof Element);
+    if (element && !elements.includes(element)) elements.unshift(element);
+    return elements.some((node) => /add\s+to\s+(?:the\s+)?queue/i.test(
+      [node.getAttribute('aria-label'), node.getAttribute('title'), node.textContent]
+        .filter(Boolean).join(' ')
+    ));
   }
 
   function handleQueueClick(event) {
-    if (!enabled || !isQueueAction(event.target)) return;
+    if (!enabled || !isQueueAction(event)) return;
 
-    const before = pendingQueueBefore || queueSnapshot();
-    const directSourceId = sourceVideoId(event.target);
-    const selectedId = directSourceId || (
-      Date.now() - pendingQueueSourceAt < 3000 ? pendingQueueSource : null
-    );
-    pendingQueueBefore = null;
+    const before = queueSnapshot();
+    const directSourceId = sourceVideoId(event);
+    const sourceIsFresh = pendingQueueSource && Date.now() - pendingQueueSourceAt < 15000;
+    const selectedId = directSourceId || (sourceIsFresh ? pendingQueueSource : null);
+    pendingQueueSource = null;
+    pendingQueueSourceAt = 0;
+    if (!selectedId) return;
     cleanQueueAfterAdd(before, selectedId);
   }
 
   function cleanQueueAfterAdd(before, selectedId) {
     const deadline = Date.now() + 5000;
-    const removing = new Set();
+    const attempts = new Map();
+    const inFlight = new Set();
 
     function inspect() {
       if (!enabled) return;
       const items = queueItems();
       const newItems = items.filter((item) => {
         const id = itemVideoId(item);
-        return id && !before.has(id) && id !== selectedId && !removing.has(id);
+        return id && !before.has(id) && id !== selectedId &&
+          !inFlight.has(id) && (attempts.get(id) || 0) < 2;
       });
 
       newItems.forEach((item) => {
         const id = itemVideoId(item);
-        if (clickRemoveFromQueue(item) && id) removing.add(id);
+        if (!id) return;
+        attempts.set(id, (attempts.get(id) || 0) + 1);
+        inFlight.add(id);
+        clickRemoveFromQueue(item).then((removed) => {
+          inFlight.delete(id);
+          if (!removed && attempts.get(id) < 2 && Date.now() < deadline) {
+            window.setTimeout(inspect, 350);
+          }
+        });
       });
 
       if (Date.now() < deadline) window.setTimeout(inspect, 250);
@@ -378,7 +460,7 @@
     window.setTimeout(inspect, 300);
   }
 
-  document.addEventListener('click', handleNavigationClick, true);
+  window.addEventListener('click', handleNavigationClick, true);
   document.addEventListener('click', rememberQueueSource, true);
   document.addEventListener('click', handleQueueClick, true);
   document.addEventListener('yt-page-data-fetched', handlePageDataFetched, true);
